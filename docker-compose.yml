@@ -1,0 +1,19 @@
+services:
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=${API_KEY:-dev-local-key-change-me}
+      - FMCSA_MODE=${FMCSA_MODE:-mock}
+      - FMCSA_WEBKEY=${FMCSA_WEBKEY:-}
+      - DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN:-http://localhost:5173}
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    restart: unless-stopped

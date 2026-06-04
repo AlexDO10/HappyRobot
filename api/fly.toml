@@ -1,0 +1,28 @@
+# Fly.io deployment config. The app speaks plain HTTP on $PORT inside the
+# container; Fly terminates TLS and forwards via the [http_service] below.
+# Rename "app" before first deploy, or run `fly launch` to generate it.
+app = "happyrobot-carrier-sales"
+primary_region = "qro"  # Querétaro
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+  FMCSA_MODE = "mock"
+
+# Secrets (NOT baked into the image) are set with:
+#   fly secrets set API_KEY=... FMCSA_WEBKEY=...
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "15s"
+    timeout = "2s"
