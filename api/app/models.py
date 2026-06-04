@@ -12,7 +12,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # --------------------------------------------------------------------------- #
@@ -123,15 +123,56 @@ class Sentiment(str, Enum):
 
 
 class CallResultCreate(BaseModel):
-    """What the HappyRobot agent POSTs at the end of a call."""
+    """What the HappyRobot agent POSTs at the end of a call.
+
+    Tolerant of empty strings: the agent fills these from variables that may be
+    blank (e.g. final_rate when nothing was booked), so blanks coerce to sensible
+    defaults instead of raising 422. Unknown outcome/sentiment fall back to a
+    safe default rather than failing the (best-effort) logging call.
+    """
 
     mc_number: str | None = None
     load_id: str | None = None
-    outcome: CallOutcome
+    outcome: CallOutcome = CallOutcome.abandoned
     sentiment: Sentiment = Sentiment.neutral
     final_rate: float | None = None
     negotiation_rounds: int = 0
     transcript_summary: str | None = None
+
+    @field_validator("mc_number", "load_id", "transcript_summary", mode="before")
+    @classmethod
+    def _blank_to_none(cls, v):
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
+    @field_validator("final_rate", mode="before")
+    @classmethod
+    def _blank_rate_to_none(cls, v):
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return None
+        return v
+
+    @field_validator("negotiation_rounds", mode="before")
+    @classmethod
+    def _blank_rounds_to_zero(cls, v):
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return 0
+        return v
+
+    @field_validator("outcome", mode="before")
+    @classmethod
+    def _default_outcome(cls, v):
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return CallOutcome.abandoned
+        return v
+
+    @field_validator("sentiment", mode="before")
+    @classmethod
+    def _default_sentiment(cls, v):
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return Sentiment.neutral
+        return v
 
 
 class CallResult(CallResultCreate):

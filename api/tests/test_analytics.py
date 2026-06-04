@@ -50,6 +50,35 @@ def test_metrics_aggregates():
     assert 0.0 <= m["booking_rate"] <= 1.0
 
 
+def test_call_result_tolerates_blank_fields():
+    # Empty strings (how HappyRobot sends unfilled variables) must not 422.
+    payload = {
+        "mc_number": "",
+        "load_id": "",
+        "outcome": "",
+        "sentiment": "",
+        "final_rate": "",
+        "negotiation_rounds": "",
+        "transcript_summary": "",
+    }
+    resp = client.post("/call_results", json=payload, headers=AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["outcome"] == "abandoned"
+    assert body["sentiment"] == "neutral"
+    assert body["final_rate"] is None
+    assert body["negotiation_rounds"] == 0
+
+
+def test_call_result_coerces_numeric_strings():
+    payload = {"outcome": "booked", "final_rate": "2000", "negotiation_rounds": "2"}
+    resp = client.post("/call_results", json=payload, headers=AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["final_rate"] == 2000
+    assert body["negotiation_rounds"] == 2
+
+
 def test_analytics_requires_auth():
     assert client.get("/metrics").status_code == 401
     assert client.post("/call_results", json={"outcome": "abandoned"}).status_code == 401
