@@ -103,3 +103,47 @@ class EvaluateOfferResponse(BaseModel):
     decision: Decision
     agreed_rate: float | None = None
     counter_offer: float | None = None
+
+
+# --------------------------------------------------------------------------- #
+# Call results / analytics (powers the dashboard)
+# --------------------------------------------------------------------------- #
+class CallOutcome(str, Enum):
+    booked = "booked"
+    no_agreement = "no_agreement"
+    not_eligible = "not_eligible"
+    no_load_match = "no_load_match"
+    abandoned = "abandoned"
+
+
+class Sentiment(str, Enum):
+    positive = "positive"
+    neutral = "neutral"
+    negative = "negative"
+
+
+class CallResultCreate(BaseModel):
+    """What the HappyRobot agent POSTs at the end of a call."""
+
+    mc_number: str | None = None
+    load_id: str | None = None
+    outcome: CallOutcome
+    sentiment: Sentiment = Sentiment.neutral
+    final_rate: float | None = None
+    negotiation_rounds: int = 0
+    transcript_summary: str | None = None
+
+
+class CallResult(CallResultCreate):
+    id: int
+    created_at: datetime
+
+
+class Metrics(BaseModel):
+    total_calls: int
+    booked: int
+    booking_rate: float
+    avg_negotiation_rounds: float
+    avg_final_rate: float | None
+    outcomes: dict[str, int]
+    sentiments: dict[str, int]

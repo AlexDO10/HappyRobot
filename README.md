@@ -21,6 +21,15 @@ managed host (Fly.io / Railway) that terminates TLS. Loads come from
 | POST   | `/get_loads`      | Find loads by lane / equipment                         |
 | POST   | `/verify_mc`      | FMCSA carrier eligibility (mock or live)               |
 | POST   | `/evaluate_offer` | Deterministic pricing decision (accept/counter/walk)   |
+| POST   | `/call_results`   | Log one call outcome (analytics) — powers the dashboard |
+| GET    | `/call_results`   | List recent call results                               |
+| GET    | `/metrics`        | Aggregated KPIs (booking rate, sentiment, outcomes)    |
+
+Live deployment: `https://happyrobot-carrier-sales-ado.fly.dev`. The
+`/call_results` and `/metrics` endpoints are additive analytics (outside the
+core 3-tool brief) that back the `web/` dashboard; call data persists in SQLite
+on a Fly volume (single machine — see `fly.toml`). The dashboard itself lives in
+`web/` and deploys to Vercel (see `web/README.md`).
 
 All endpoints except `/health` require the header **`x-api-key: <API_KEY>`**.
 A mismatched or missing key returns `401`.

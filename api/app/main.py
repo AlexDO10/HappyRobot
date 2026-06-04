@@ -1,8 +1,17 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routes import router
+from app.stores import calls_store
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    calls_store.init_db()
+    yield
 
 
 def create_app() -> FastAPI:
@@ -12,14 +21,15 @@ def create_app() -> FastAPI:
         version="1.0.0",
         description=(
             "Backend tools for a HappyRobot voice agent: load search, FMCSA "
-            "carrier verification, and deterministic offer evaluation."
+            "carrier verification, deterministic offer evaluation, and call analytics."
         ),
+        lifespan=lifespan,
     )
 
     # Allow the (separate) dashboard frontend to call the API from a browser.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.dashboard_origin],
+        allow_origins=settings.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )

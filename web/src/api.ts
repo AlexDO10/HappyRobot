@@ -8,15 +8,30 @@ export interface Metrics {
   sentiments: Record<string, number>;
 }
 
+export interface CallResult {
+  id: number;
+  mc_number: string | null;
+  load_id: string | null;
+  outcome: string;
+  sentiment: string;
+  final_rate: number | null;
+  negotiation_rounds: number;
+  transcript_summary: string | null;
+  created_at: string;
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 const API_KEY = import.meta.env.VITE_API_KEY ?? "";
 
-export async function fetchMetrics(): Promise<Metrics> {
-  const res = await fetch(`${API_BASE}/metrics`, {
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "x-api-key": API_KEY },
   });
   if (!res.ok) {
-    throw new Error(`Metrics request failed: ${res.status}`);
+    throw new Error(`${path} failed: ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
+
+export const fetchMetrics = () => get<Metrics>("/metrics");
+export const fetchCalls = () => get<CallResult[]>("/call_results?limit=50");
