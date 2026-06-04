@@ -47,6 +47,13 @@ def test_verify_mc_mock():
     assert resp.json() == {"status": "eligible", "legal_name": "Mock Freight Lines LLC"}
 
 
+def test_verify_mc_unknown_returns_not_found():
+    # Only MC numbers explicitly in the mock registry resolve; everything else
+    # (e.g. 000010) must be not_found, never eligible.
+    resp = client.post("/verify_mc", json={"mc_number": "000010"}, headers=AUTH)
+    assert resp.json()["status"] == "not_found"
+
+
 def test_evaluate_offer_unknown_load_404():
     resp = client.post(
         "/evaluate_offer",

@@ -1,7 +1,9 @@
 """FMCSA carrier eligibility lookup behind a small client interface.
 
-MOCK mode (FMCSA_MODE=mock, the default) returns canned results keyed by
-mc_number so the demo never depends on a live FMCSA key or FMCSA uptime.
+MOCK mode (FMCSA_MODE=mock, the default) behaves like a small registry: only the
+MC numbers explicitly listed in _MOCK_CARRIERS resolve, and every other number
+returns "not_found". This keeps the demo deterministic and avoids depending on a
+live FMCSA key or FMCSA uptime.
 
 LIVE mode (FMCSA_MODE=live) calls the FMCSA QCMobile API by docket number with
 a server-side webkey, mapping the response to three statuses:
@@ -38,14 +40,9 @@ async def verify_mc(mc_number: str) -> VerifyMcResponse:
 
 
 def _mock_verify(digits: str) -> VerifyMcResponse:
-    if digits in _MOCK_CARRIERS:
-        return _MOCK_CARRIERS[digits]
-    # Deterministic fallback for any other number: even last digit -> eligible.
-    if not digits:
-        return VerifyMcResponse(status="not_found")
-    if int(digits[-1]) % 2 == 0:
-        return VerifyMcResponse(status="eligible", legal_name=f"Mock Carrier {digits} LLC")
-    return VerifyMcResponse(status="not_eligible", legal_name=f"Mock Carrier {digits} LLC")
+    # Mock mode acts like a registry: only explicitly known MC numbers resolve.
+    # Anything else is treated as not in the system.
+    return _MOCK_CARRIERS.get(digits, VerifyMcResponse(status="not_found"))
 
 
 async def _live_verify(digits: str) -> VerifyMcResponse:
