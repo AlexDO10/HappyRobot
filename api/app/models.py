@@ -138,6 +138,16 @@ class CallResultCreate(BaseModel):
     final_rate: float | None = None
     negotiation_rounds: int = 0
     transcript_summary: str | None = None
+    transferred: bool = False  # was the booked carrier transferred to a rep?
+
+    @field_validator("transferred", mode="before")
+    @classmethod
+    def _blank_transferred_to_false(cls, v):
+        if v is None or (isinstance(v, str) and v.strip() == ""):
+            return False
+        if isinstance(v, str):
+            return v.strip().lower() in {"true", "1", "yes", "y"}
+        return v
 
     @field_validator("mc_number", "load_id", "transcript_summary", mode="before")
     @classmethod
@@ -180,6 +190,11 @@ class CallResult(CallResultCreate):
     created_at: datetime
 
 
+class FunnelStage(BaseModel):
+    stage: str
+    count: int
+
+
 class Metrics(BaseModel):
     total_calls: int
     booked: int
@@ -188,3 +203,16 @@ class Metrics(BaseModel):
     avg_final_rate: float | None
     outcomes: dict[str, int]
     sentiments: dict[str, int]
+
+    # Conversion funnel: total -> eligible -> load matched -> booked.
+    funnel: list[FunnelStage]
+
+    # Negotiation effectiveness (booked loads only, computed server-side by
+    # joining final_rate with the load's loadboard_rate and hidden max_buy_rate).
+    avg_markup_over_loadboard: float | None  # $ paid above our posted rate
+    avg_savings_vs_ceiling: float | None  # $ we stayed under our walk-away ceiling
+    avg_gap_captured_pct: float | None  # fraction of the (ceiling-base) gap we paid
+
+    # Transfer (of booked carriers handed to a human rep).
+    transferred: int
+    transfer_rate: float

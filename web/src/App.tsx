@@ -3,6 +3,7 @@ import {
   Bar,
   BarChart,
   Cell,
+  LabelList,
   Legend,
   Pie,
   PieChart,
@@ -128,6 +129,51 @@ export function App() {
               label="Avg Final Rate"
               value={metrics.avg_final_rate != null ? `$${metrics.avg_final_rate.toLocaleString()}` : "—"}
             />
+          </div>
+
+          {/* Negotiation effectiveness + transfer */}
+          <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
+            <StatCard
+              label="Avg Markup vs Posted"
+              value={
+                metrics.avg_markup_over_loadboard != null
+                  ? `+$${metrics.avg_markup_over_loadboard.toLocaleString()}`
+                  : "—"
+              }
+            />
+            <StatCard
+              label="Avg Saved vs Ceiling"
+              value={
+                metrics.avg_savings_vs_ceiling != null
+                  ? `$${metrics.avg_savings_vs_ceiling.toLocaleString()}`
+                  : "—"
+              }
+            />
+            <StatCard
+              label="Gap Paid"
+              value={
+                metrics.avg_gap_captured_pct != null
+                  ? `${(metrics.avg_gap_captured_pct * 100).toFixed(0)}%`
+                  : "—"
+              }
+            />
+            <StatCard label="Transferred" value={metrics.transferred} />
+            <StatCard label="Transfer Rate" value={`${(metrics.transfer_rate * 100).toFixed(0)}%`} />
+          </div>
+
+          {/* Conversion funnel */}
+          <div style={{ ...card, marginTop: 24 }}>
+            <h3 style={{ marginTop: 0, color: "#0f172a" }}>Conversion funnel</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={metrics.funnel} layout="vertical" margin={{ left: 24 }}>
+                <XAxis type="number" allowDecimals={false} hide />
+                <YAxis type="category" dataKey="stage" width={100} tick={{ fontSize: 13 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#0ea5e9" radius={[0, 6, 6, 0]}>
+                  <LabelList dataKey="count" position="right" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
           <div style={{ display: "flex", gap: 16, marginTop: 24, flexWrap: "wrap" }}>

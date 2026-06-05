@@ -1,3 +1,8 @@
+export interface FunnelStage {
+  stage: string;
+  count: number;
+}
+
 export interface Metrics {
   total_calls: number;
   booked: number;
@@ -6,6 +11,12 @@ export interface Metrics {
   avg_final_rate: number | null;
   outcomes: Record<string, number>;
   sentiments: Record<string, number>;
+  funnel: FunnelStage[];
+  avg_markup_over_loadboard: number | null;
+  avg_savings_vs_ceiling: number | null;
+  avg_gap_captured_pct: number | null;
+  transferred: number;
+  transfer_rate: number;
 }
 
 export interface CallResult {

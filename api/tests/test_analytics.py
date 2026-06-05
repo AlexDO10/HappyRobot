@@ -79,6 +79,35 @@ def test_call_result_coerces_numeric_strings():
     assert body["negotiation_rounds"] == 2
 
 
+def test_metrics_funnel_effectiveness_and_transfer():
+    # Booked LD-1001 at 2000 (loadboard 1850, ceiling 2150) with a transfer.
+    client.post(
+        "/call_results",
+        json={
+            "load_id": "LD-1001", "outcome": "booked", "sentiment": "positive",
+            "final_rate": 2000, "negotiation_rounds": 1, "transferred": "true",
+        },
+        headers=AUTH,
+    )
+    m = client.get("/metrics", headers=AUTH).json()
+
+    # Funnel is present and monotonically non-increasing.
+    stages = [s["count"] for s in m["funnel"]]
+    assert [s["stage"] for s in m["funnel"]] == [
+        "Total calls", "Eligible", "Load matched", "Booked",
+    ]
+    assert stages == sorted(stages, reverse=True)
+
+    # Effectiveness for our booked LD-1001 deal: markup 150, savings 150.
+    assert m["avg_markup_over_loadboard"] is not None
+    assert m["avg_savings_vs_ceiling"] is not None
+    assert 0.0 <= m["avg_gap_captured_pct"] <= 1.0
+
+    # Transfer reflected.
+    assert m["transferred"] >= 1
+    assert 0.0 <= m["transfer_rate"] <= 1.0
+
+
 def test_analytics_requires_auth():
     assert client.get("/metrics").status_code == 401
     assert client.post("/call_results", json={"outcome": "abandoned"}).status_code == 401
