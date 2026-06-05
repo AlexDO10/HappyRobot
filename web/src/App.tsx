@@ -151,21 +151,15 @@ export function App() {
       {/* Branded header */}
       <header
         style={{
-          background: "linear-gradient(120deg, #0b1120 0%, #1e1b4b 100%)",
+          background:
+            "radial-gradient(1200px 300px at 85% -40%, rgba(99,102,241,0.35), transparent 70%), linear-gradient(120deg, #0b1120 0%, #15132e 100%)",
           color: "#fff",
-          padding: "20px 32px",
+          padding: "22px 32px",
           position: "relative",
           overflow: "hidden",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        {/* freight highway illustration — pure CSS, no external assets */}
-        <div aria-hidden style={{
-          position: "absolute", inset: 0, pointerEvents: "none",
-          background: `
-            linear-gradient(120deg, rgba(11,17,32,0.96) 0%, rgba(30,27,75,0.82) 60%, transparent 100%),
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='120' viewBox='0 0 900 120'%3E%3Crect width='900' height='120' fill='%23111827'/%3E%3Crect y='68' width='900' height='52' fill='%231f2937'/%3E%3Cline x1='0' y1='95' x2='900' y2='95' stroke='%23374151' stroke-width='1'/%3E%3Crect x='0' y='91' width='900' height='2' fill='%23f59e0b' opacity='0.15'/%3E%3Cg fill='%23f59e0b' opacity='0.4'%3E%3Crect x='20' y='93' width='60' height='3' rx='1'/%3E%3Crect x='140' y='93' width='60' height='3' rx='1'/%3E%3Crect x='260' y='93' width='60' height='3' rx='1'/%3E%3Crect x='380' y='93' width='60' height='3' rx='1'/%3E%3Crect x='500' y='93' width='60' height='3' rx='1'/%3E%3Crect x='620' y='93' width='60' height='3' rx='1'/%3E%3Crect x='740' y='93' width='60' height='3' rx='1'/%3E%3Crect x='860' y='93' width='60' height='3' rx='1'/%3E%3C/g%3E%3Cg opacity='0.6'%3E%3Crect x='580' y='40' width='130' height='32' rx='3' fill='%231e3a5f'/%3E%3Crect x='590' y='36' width='110' height='8' rx='2' fill='%231e3a5f'/%3E%3Crect x='582' y='65' width='12' height='8' rx='6' fill='%23374151'/%3E%3Crect x='690' y='65' width='12' height='8' rx='6' fill='%23374151'/%3E%3Crect x='596' y='44' width='18' height='12' rx='1' fill='%23164e63' opacity='0.8'/%3E%3Crect x='622' y='44' width='18' height='12' rx='1' fill='%23164e63' opacity='0.8'/%3E%3Crect x='648' y='44' width='18' height='12' rx='1' fill='%23164e63' opacity='0.8'/%3E%3C/g%3E%3Cg opacity='0.35'%3E%3Crect x='750' y='48' width='100' height='24' rx='3' fill='%231e3a5f'/%3E%3Crect x='758' y='44' width='84' height='6' rx='2' fill='%231e3a5f'/%3E%3Crect x='752' y='65' width='10' height='7' rx='5' fill='%23374151'/%3E%3Crect x='832' y='65' width='10' height='7' rx='5' fill='%23374151'/%3E%3C/g%3E%3C/svg%3E") right bottom / 900px auto no-repeat
-          `,
-        }} />
         <div
           style={{
             maxWidth: 1180,
