@@ -147,7 +147,9 @@ toggle:
   otherwise not_eligible, missing/error → not_found.
 
 Switching modes is a runtime env change (`FMCSA_MODE`, `FMCSA_WEBKEY`) — no code
-change, no redeploy of a different image.
+change, no redeploy of a different image. **The deployed system runs in `live`
+mode** against the real FMCSA QCMobile API with a server-side webkey; `mock`
+remains available as a deterministic, dependency-free fallback for demos.
 
 ---
 
@@ -237,7 +239,20 @@ All endpoints are documented automatically via FastAPI's OpenAPI schema at
 
 ---
 
-## 10. What I'd do next (production hardening)
+## 10. Additional considerations (challenge checklist)
+
+| Requirement | How it's met |
+|-------------|--------------|
+| HTTPS | TLS terminated by Fly.io; `force_https` redirects HTTP → HTTPS. The app speaks plain HTTP only inside the container. |
+| API key auth on all endpoints | `x-api-key` enforced on every endpoint except `/health`, constant-time comparison against a runtime env var. |
+| Deploy to a cloud provider | Deployed to Fly.io (Dallas region). Portable: nothing host-specific in app code. |
+| How to access the deployment | Base URL + `/docs` (live OpenAPI). See §1 links. |
+| How to reproduce the deployment | Documented shell steps in §8 (`fly launch` / `volumes create` / `secrets set` / `deploy`) plus a committed `Dockerfile` and `fly.toml`. |
+| Calls — use the web call trigger | The HappyRobot workflow uses the web call trigger; no phone number was purchased. |
+
+---
+
+## 11. What I'd do next (production hardening)
 
 - Move call-results storage to a shared DB (Postgres) to allow horizontal
   scaling of the API beyond a single machine.
