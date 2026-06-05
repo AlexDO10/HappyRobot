@@ -161,6 +161,12 @@ class CallResultCreate(BaseModel):
     def _blank_rate_to_none(cls, v):
         if v is None or (isinstance(v, str) and v.strip() == ""):
             return None
+        # Treat 0 as missing — the agent sends 0 as default when no rate was agreed.
+        try:
+            if float(v) <= 0:
+                return None
+        except (TypeError, ValueError):
+            pass
         return v
 
     @field_validator("negotiation_rounds", mode="before")

@@ -108,8 +108,11 @@ def compute_metrics() -> Metrics:
         outcomes[r["outcome"]] = outcomes.get(r["outcome"], 0) + 1
         sentiments[r["sentiment"]] = sentiments.get(r["sentiment"], 0) + 1
         rounds_sum += r["negotiation_rounds"] or 0
-        if r["final_rate"] is not None:
-            rate_sum += r["final_rate"]
+        # Treat final_rate=0 as missing — the agent sometimes sends 0 as a
+        # default when nothing was booked, which would corrupt the averages.
+        valid_rate = r["final_rate"] if (r["final_rate"] is not None and r["final_rate"] > 0) else None
+        if valid_rate is not None:
+            rate_sum += valid_rate
             rate_count += 1
 
         is_booked = r["outcome"] == CallOutcome.booked.value
@@ -117,10 +120,11 @@ def compute_metrics() -> Metrics:
             transferred += 1
 
         # Join booked calls with their load to measure how good the deal was.
-        if is_booked and r["final_rate"] is not None and r["load_id"]:
+        # Only count rows with a real positive rate to avoid corrupting averages.
+        if is_booked and valid_rate is not None and r["load_id"]:
             load = loads_store.get_load(r["load_id"])
             if load:
-                final = r["final_rate"]
+                final = valid_rate
                 markup_sum += final - load.loadboard_rate
                 savings_sum += load.max_buy_rate - final
                 gap = load.max_buy_rate - load.loadboard_rate
