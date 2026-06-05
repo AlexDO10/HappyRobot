@@ -106,6 +106,33 @@ else if not the final round → counter at `allowed`; else → walk. The round i
 clamped to 1–3 **in code** — round 3 can only accept or walk, never counter.
 The endpoint accepts no "max"/"limit" from the caller.
 
+## Prerequisites
+
+Match the versions this repo is built against:
+
+- Python 3.12 (see `requires-python` in `api/pyproject.toml`)
+- `uv` >= 0.5 (the Dockerfile pins `0.5.11`)
+- Docker 24+ with Docker Compose v2 (for the containerized paths)
+- `flyctl` (only for the Fly.io deploy)
+- Node 20 + npm (only if you also run the `web/` dashboard locally)
+
+Pick the path you need — local dev only needs Python + `uv`; a full container run only needs Docker; deploying needs `flyctl`.
+
+## Configuration
+
+All configuration is via environment variables. `api/.env.example` and `web/.env.example` are checked in — copy them to `.env` for local runs. In production, secrets are injected by the host (Fly secrets, Vercel env vars) — nothing is baked into images.
+
+| Var                 | Scope | Required | Default                  | Notes                                                                                  |
+|---------------------|-------|----------|--------------------------|----------------------------------------------------------------------------------------|
+| `API_KEY`           | api   | yes      | —                        | Shared secret. Sent by clients in the `x-api-key` header. Mismatch → `401`.            |
+| `FMCSA_MODE`        | api   | yes      | `mock`                   | `mock` (offline) or `live` (real FMCSA QCMobile API).                                  |
+| `FMCSA_WEBKEY`      | api   | if live  | —                        | FMCSA QCMobile webKey. Required when `FMCSA_MODE=live`.                                |
+| `DASHBOARD_ORIGINS` | api   | no       | `http://localhost:5173`  | Comma-separated list of browser origins allowed by CORS. Add your Vercel URL here.     |
+| `CALLS_DB`          | api   | no       | `data/calls.db`          | Path to the SQLite analytics DB. Set to `/data/calls.db` on Fly to use the volume.     |
+| `PORT`              | api   | no       | `8000`                   | The host injects this in production; the app binds `0.0.0.0:$PORT`.                    |
+| `VITE_API_BASE_URL` | web   | yes      | —                        | Base URL of the API, e.g. `https://happyrobot-carrier-sales-ado.fly.dev`. No trailing slash. |
+| `VITE_API_KEY`      | web   | yes      | —                        | Must match the API's `API_KEY`. Inlined into the bundle — see `web/README.md`.         |
+
 ## Run locally
 
 ```bash
@@ -126,6 +153,16 @@ docker run --rm -p 8000:8000 \
   -e FMCSA_MODE=mock \
   carrier-sales
 ```
+
+> Analytics (`/call_results`, `/metrics`) write to SQLite inside the container in this mode, so they vanish when the container exits. Use `docker compose` (below) or Fly (with the mounted volume) when you need the dashboard data to persist. To persist locally, mount a host directory and point `CALLS_DB` at it:
+>
+> ```bash
+> docker run --rm -p 8000:8000 \
+>   -e API_KEY=your-strong-key -e FMCSA_MODE=mock \
+>   -e CALLS_DB=/data/calls.db \
+>   -v "$(pwd)/data:/data" \
+>   carrier-sales
+> ```
 
 Or the full stack (API + dashboard) from the repo root:
 ```bash
@@ -158,20 +195,53 @@ The deployed system runs in **live** mode against the real FMCSA QCMobile API;
 
 ## Deploy (Fly.io)
 
-TLS is handled by the host — the app only speaks plain HTTP on `$PORT`.
+TLS is handled by the host — the app only speaks plain HTTP on `$PORT`. The included `api/fly.toml` already wires up health checks, the `[mounts]` block for the SQLite analytics volume, and `force_https`.
+
+First-time setup:
 
 ```bash
 cd api
-fly launch --no-deploy            # or use the included fly.toml (edit app name)
+
+# 1. Pick a unique app name. Either edit `app = "..."` in fly.toml directly,
+#    or generate a fresh one with `fly launch`:
+fly launch --no-deploy --copy-config
+
+# 2. Create the persistent volume that fly.toml's [mounts] block expects.
+#    Skipping this step makes `fly deploy` fail with "volume not found".
+fly volumes create carrier_data --region dfw --size 1
+
+# 3. Inject secrets (never baked into the image).
 fly secrets set API_KEY=your-strong-key
-# for live FMCSA: fly secrets set FMCSA_MODE=live FMCSA_WEBKEY=your-webkey
+# Live FMCSA only:
+fly secrets set FMCSA_MODE=live FMCSA_WEBKEY=your-webkey
+# Allow the dashboard's browser origin (comma-separated; add localhost for dev):
+fly secrets set DASHBOARD_ORIGINS="http://localhost:5173,https://<your-project>.vercel.app"
+
+# 4. Deploy and smoke-test.
 fly deploy
-fly open                          # https://<app>.fly.dev/health
+curl -s https://<app>.fly.dev/health
+curl -s https://<app>.fly.dev/get_loads \
+  -H "x-api-key: your-strong-key" -H 'content-type: application/json' \
+  -d '{"origin":"Dallas"}'
 ```
 
+Subsequent deploys are just `fly deploy` from `api/`.
+
 Railway: `railway up` against `api/` works identically — set `API_KEY`,
-`FMCSA_MODE`, (`FMCSA_WEBKEY`) as service variables; Railway provides `$PORT`
-and TLS.
+`FMCSA_MODE`, (`FMCSA_WEBKEY`), and `DASHBOARD_ORIGINS` as service variables;
+Railway provides `$PORT` and TLS. (No persistent volume out of the box, so
+analytics will reset on redeploy unless you wire up a Railway volume.)
+
+## Deploy the dashboard
+
+The `web/` React dashboard is a static SPA that calls the API over HTTPS — it deploys cleanly to Vercel (or any static host). Set `VITE_API_BASE_URL` to your Fly URL and `VITE_API_KEY` to the same value as the API's `API_KEY`, then add the Vercel origin to `DASHBOARD_ORIGINS` on the API so CORS allows it. Full instructions: [`web/README.md`](web/README.md).
+
+## Troubleshooting
+
+- **`401 Unauthorized` on every call** → the `x-api-key` header doesn't match the API's `API_KEY`. Check the deployed value with `fly secrets list` (you'll only see digests, not values — reset with `fly secrets set` if unsure).
+- **Browser console shows a CORS error from the dashboard** → the dashboard's origin isn't in `DASHBOARD_ORIGINS`. Add it (comma-separated) and redeploy: `fly secrets set DASHBOARD_ORIGINS="http://localhost:5173,https://<your-project>.vercel.app"`. Setting a secret triggers a redeploy automatically.
+- **`fly deploy` fails with a missing-volume error** → run `fly volumes create carrier_data --region dfw --size 1` once, then redeploy. The `[mounts]` block in `fly.toml` requires it.
+- **`FMCSA_MODE=live` returns `not_found` for every MC number** → `FMCSA_WEBKEY` is missing or invalid. Verify with `fly secrets list` and re-set it; or fall back to `FMCSA_MODE=mock` for offline demos.
 
 ## Reproducibility / portability notes
 

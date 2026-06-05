@@ -7,7 +7,7 @@ services:
       - API_KEY=${API_KEY:-dev-local-key-change-me}
       - FMCSA_MODE=${FMCSA_MODE:-mock}
       - FMCSA_WEBKEY=${FMCSA_WEBKEY:-}
-      - DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN:-http://localhost:5173}
+      - DASHBOARD_ORIGINS=${DASHBOARD_ORIGINS:-http://localhost:5173}
     restart: unless-stopped
 
   web:
