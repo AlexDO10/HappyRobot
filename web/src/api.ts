@@ -28,6 +28,7 @@ export interface CallResult {
   final_rate: number | null;
   negotiation_rounds: number;
   transcript_summary: string | null;
+  transferred: boolean;
   created_at: string;
 }
 
