@@ -41,10 +41,9 @@ build/
 *.local
 *.tsbuildinfo
 
-# --- OS / editor ---
+# --- OS / editor / local tooling ---
 .DS_Store
 .idea/
-*.log
-
-# --- Agents ---
+.vscode/
 .claude/
+*.log

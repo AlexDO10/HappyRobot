@@ -5,15 +5,14 @@ brokerage. The agent runs on the **HappyRobot platform** and calls these
 endpoints as tools mid-conversation — the agent, its prompt, and the call flow
 live on the platform, not in this repo. This service is the backend only.
 
-> A `web/` React frontend is included as a starting point for a future
-> analytics dashboard. It is **not** part of the API scope below and the API
-> does not depend on it.
+> A `web/` React analytics dashboard ships alongside the API and is deployed to
+> Vercel. It reads the analytics endpoints but the API does not depend on it.
 
 ## What it does
 
-Three JSON endpoints, single shared API-key auth on all of them, deployable to a
-managed host (Fly.io / Railway) that terminates TLS. Loads come from
-`api/data/loads.json`, loaded into memory at startup — no database.
+Three core JSON tools (plus analytics endpoints), single shared API-key auth on
+all of them, deployable to a managed host (Fly.io / Railway) that terminates TLS.
+Loads come from `api/data/loads.json`, loaded into memory at startup — no database.
 
 | Method | Path              | Purpose                                                |
 |--------|-------------------|--------------------------------------------------------|
@@ -146,13 +145,16 @@ invariant (`max_buy_rate` never appears in any `/get_loads` body).
 
 ## FMCSA mode
 
-- `FMCSA_MODE=mock` (default): canned results keyed by `mc_number`, no network
-  or key required. `123456`/`111111` → eligible, `222222` → not_eligible,
-  `000000` → not_found; any other number → eligible if its last digit is even.
-- `FMCSA_MODE=live`: calls
+The deployed system runs in **live** mode against the real FMCSA QCMobile API;
+`mock` is a deterministic, dependency-free fallback for offline demos.
+
+- `FMCSA_MODE=live` (production): calls
   `GET https://mobile.fmcsa.dot.gov/qc/services/carriers/docket-number/{mc}?webKey=$FMCSA_WEBKEY`
   and maps `allowedToOperate == "Y"` → eligible, else not_eligible, missing →
   not_found.
+- `FMCSA_MODE=mock`: a small registry keyed by `mc_number` — only explicitly
+  known numbers resolve (`123456`/`111111` → eligible, `222222` → not_eligible);
+  everything else → not_found. No network or key required.
 
 ## Deploy (Fly.io)
 
